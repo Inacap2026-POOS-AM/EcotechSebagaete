@@ -1,2 +1,4 @@
-   .venv/
-   .env
+.venv/
+.env
+ecotech.db
+__pycache__/
