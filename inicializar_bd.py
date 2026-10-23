@@ -1,3 +1,5 @@
+import os
+
 from infraestructura.conexion import obtener_conexion
 
 
@@ -9,6 +11,14 @@ def inicializar():
         conn.commit()
     finally:
         conn.close()
+
+
+def base_de_demostracion(nombre="demo.db"):
+    """Apunta a una base desechable y limpia, sin tocar ecotech.db."""
+    os.environ["DB_NOMBRE"] = nombre
+    if os.path.exists(nombre):
+        os.remove(nombre)
+    inicializar()
 
 
 if __name__ == "__main__":

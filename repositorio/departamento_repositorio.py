@@ -1,4 +1,7 @@
+import sqlite3
+
 from dominio.departamento import Departamento
+from dominio.excepciones import ErrorDeDominio
 from infraestructura.conexion import transaccion
 
 
@@ -10,12 +13,17 @@ class DepartamentoRepositorio:
         return Departamento(fila[0], fila[1])
 
     def guardar(self, departamento):
-        with transaccion() as conn:
-            cursor = conn.execute(
-                "INSERT INTO departamento (nombre) VALUES (?)",
-                (departamento.get_nombre(),),
-            )
-            departamento.set_id(cursor.lastrowid)
+        try:
+            with transaccion() as conn:
+                cursor = conn.execute(
+                    "INSERT INTO departamento (nombre) VALUES (?)",
+                    (departamento.get_nombre(),),
+                )
+                departamento.set_id(cursor.lastrowid)
+        except sqlite3.IntegrityError as error:
+            raise ErrorDeDominio(
+                "Ya existe un departamento con ese nombre"
+            ) from error
         return departamento
 
     def obtener(self, id_departamento):
@@ -31,23 +39,33 @@ class DepartamentoRepositorio:
             filas = conn.execute(
                 """SELECT id, nombre FROM departamento
                    WHERE nombre LIKE ? ORDER BY nombre""",
-                (f"%{nombre_contiene}%",),  # solo arma el dato, no el SQL
+                (f"%{nombre_contiene}%",),  # arma el dato, no el SQL
             ).fetchall()
         return [self._fila_a_departamento(f) for f in filas]
 
     def actualizar(self, departamento):
-        with transaccion() as conn:
-            cursor = conn.execute(
-                "UPDATE departamento SET nombre = ? WHERE id = ?",
-                (departamento.get_nombre(), departamento.get_id()),
-            )
+        try:
+            with transaccion() as conn:
+                cursor = conn.execute(
+                    "UPDATE departamento SET nombre = ? WHERE id = ?",
+                    (departamento.get_nombre(), departamento.get_id()),
+                )
+        except sqlite3.IntegrityError as error:
+            raise ErrorDeDominio(
+                "Ya existe un departamento con ese nombre"
+            ) from error
         return cursor.rowcount
 
     def eliminar(self, id_departamento):
-        """Borrado físico. La base lo rechaza si aún tiene empleados."""
-        with transaccion() as conn:
-            cursor = conn.execute(
-                "DELETE FROM departamento WHERE id = ?",
-                (id_departamento,),
-            )
+        """Borrado físico. Se rechaza si aún tiene empleados."""
+        try:
+            with transaccion() as conn:
+                cursor = conn.execute(
+                    "DELETE FROM departamento WHERE id = ?",
+                    (id_departamento,),
+                )
+        except sqlite3.IntegrityError as error:
+            raise ErrorDeDominio(
+                "No se puede eliminar: el departamento aún tiene empleados"
+            ) from error
         return cursor.rowcount > 0

@@ -1,5 +1,6 @@
 import hashlib
 
+from dominio.excepciones import SueldoInvalido
 from dominio.persona import Persona
 from dominio.registro_tiempo import RegistroTiempo
 
@@ -19,8 +20,8 @@ class Empleado(Persona):
         self._registros = []
 
     def set_salario(self, nuevo_salario):
-        if nuevo_salario <= 0:
-            raise ValueError("El salario debe ser positivo")
+        if not isinstance(nuevo_salario, (int, float)) or nuevo_salario <= 0:
+            raise SueldoInvalido("El salario debe ser un número positivo")
         self._salario = nuevo_salario
 
     def get_salario(self):

@@ -1,31 +1,33 @@
 import hashlib
-import os
-import sqlite3
 from datetime import date
 
 from dominio.departamento import Departamento
 from dominio.empleado import Empleado
-from inicializar_bd import inicializar
+from dominio.excepciones import ErrorDeDominio, RutDuplicado, SueldoInvalido
+from dominio.proyecto import Proyecto
+from inicializar_bd import base_de_demostracion
 from repositorio.departamento_repositorio import DepartamentoRepositorio
 from repositorio.empleado_repositorio import EmpleadoRepositorio
+from repositorio.proyecto_repositorio import ProyectoRepositorio
 
-ruta_bd = os.getenv("DB_NOMBRE", "ecotech.db")
-if os.path.exists(ruta_bd):
-    os.remove(ruta_bd)
-inicializar()
-
+base_de_demostracion()
 deptos = DepartamentoRepositorio()
 empleados = EmpleadoRepositorio()
+proyectos = ProyectoRepositorio()
 clave = hashlib.sha256("clave123".encode()).hexdigest()
 
 print("=== CREAR ===")
 operaciones = deptos.guardar(Departamento(None, "Operaciones"))
-print(operaciones)
 temporal = deptos.guardar(Departamento(None, "Temporal"))
+print(operaciones)
 print(temporal)
 ana = Empleado("12345678-9", "Ana Rojas", "+56911111111",
                "ana@ecotech.cl", date(2024, 3, 1), 950000, clave)
 empleados.guardar(ana, departamento_id=operaciones.get_id())
+panel = proyectos.guardar(Proyecto(None, "Panel Solar",
+                                   "Monitoreo de paneles",
+                                   date(2026, 3, 1)))
+print(panel)
 
 print("=== LEER ===")
 print(empleados.obtener("12345678-9"))
@@ -46,20 +48,35 @@ print("Salario guardado:", empleados.obtener("12345678-9").get_salario())
 operaciones.set_nombre("Operaciones y Soporte")
 print("Filas cambiadas:", deptos.actualizar(operaciones))
 
-print("=== QUÉ PASA CUANDO ALGO FALLA ===")
+print("=== ERRORES DEL DOMINIO ===")
 try:
     empleados.guardar(ana)
-except sqlite3.IntegrityError as error:
-    print("RUT duplicado:", error)
-try:
-    deptos.eliminar(operaciones.get_id())
-except sqlite3.IntegrityError as error:
-    print("Borrar departamento con empleados:", error)
+except RutDuplicado as error:
+    print("RutDuplicado:", error)
 try:
     ana.set_salario(-5)
-except ValueError as error:
-    print("Salario inválido:", error)
+except SueldoInvalido as error:
+    print("SueldoInvalido:", error)
+try:
+    deptos.eliminar(operaciones.get_id())
+except ErrorDeDominio as error:
+    print("ErrorDeDominio:", error)
 print("RUT inexistente:", empleados.obtener("00000000-0"))
+
+print("=== TRANSACCIÓN: ASIGNAR + BITÁCORA ===")
+proyectos.asignar_empleado("12345678-9", panel.get_id())
+print("Asignaciones:", proyectos.contar_asignaciones(),
+      "| Bitácora:", proyectos.contar_bitacora())
+try:
+    proyectos.asignar_empleado("12345678-9", panel.get_id())
+except ErrorDeDominio as error:
+    print("Asignación repetida:", error)
+try:
+    proyectos.asignar_empleado("12345678-9", 999)
+except ErrorDeDominio as error:
+    print("Proyecto inexistente:", error)
+print("Asignaciones:", proyectos.contar_asignaciones(),
+      "| Bitácora:", proyectos.contar_bitacora())
 
 print("=== ELIMINAR ===")
 print("Empleado archivado:", empleados.eliminar("12345678-9"))
