@@ -23,4 +23,14 @@ class Departamento:
                 break
 
     def get_nombre(self):
-        pass
+        return self._nombre
+
+    def cantidad_empleados(self):
+        return len(self._empleados)
+
+    def total_nomina(self):
+        return sum(e.get_salario() for e in self._empleados)
+
+    def __str__(self):
+        return (f"Departamento {self._id_departamento}: {self._nombre} "
+                f"({len(self._empleados)} empleados)")

@@ -7,6 +7,7 @@ class Proyecto:
         self._descripcion = descripcion
         self._fecha_inicio = fecha_inicio
         self._empleados = []    # 0..* -> lista
+        self._registros = []    # horas imputadas a este proyecto
 
     def asignar_empleado(self, empleado):
         if empleado not in self._empleados:
@@ -19,4 +20,14 @@ class Proyecto:
             empleado._proyectos.remove(self)
 
     def get_detalles(self):
-        pass
+        return f"{self._nombre}: {self._descripcion}"
+
+    def get_nombre(self):
+        return self._nombre
+
+    def total_horas(self):
+        return sum(r.get_cantidad_horas() for r in self._registros)
+
+    def __str__(self):
+        return (f"Proyecto {self._id_proyecto}: {self._nombre} "
+                f"(inicio {self._fecha_inicio})")

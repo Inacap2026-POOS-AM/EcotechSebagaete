@@ -4,10 +4,18 @@ class Persona:
     def __init__(self, nombre, telefono, email):
         self._nombre = nombre
         self._telefono = telefono
-        self._email = email
+        self.set_email(email)
+
+    def set_email(self, valor):
+        if "@" not in valor:
+            raise ValueError("El email debe contener '@'")
+        self._email = valor
 
     def get_email(self):
-        pass
+        return self._email
 
     def get_nombre(self):
-        pass
+        return self._nombre
+
+    def __str__(self):
+        return f"{self._nombre} <{self._email}>"
