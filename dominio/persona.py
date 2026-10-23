@@ -17,5 +17,8 @@ class Persona:
     def get_nombre(self):
         return self._nombre
 
+    def get_telefono(self):
+        return self._telefono
+
     def __str__(self):
         return f"{self._nombre} <{self._email}>"

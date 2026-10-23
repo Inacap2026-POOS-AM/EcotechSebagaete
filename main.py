@@ -1,63 +1,68 @@
 import hashlib
+import os
+import sqlite3
 from datetime import date
 
 from dominio.departamento import Departamento
 from dominio.empleado import Empleado
-from dominio.informe import Informe
-from dominio.informe_dotacion import InformeDotacion
-from dominio.informe_nomina import InformeNomina
-from dominio.informe_proyecto import InformeProyecto
-from dominio.persona import Persona
-from dominio.proyecto import Proyecto
+from inicializar_bd import inicializar
+from repositorio.departamento_repositorio import DepartamentoRepositorio
+from repositorio.empleado_repositorio import EmpleadoRepositorio
 
+ruta_bd = os.getenv("DB_NOMBRE", "ecotech.db")
+if os.path.exists(ruta_bd):
+    os.remove(ruta_bd)
+inicializar()
+
+deptos = DepartamentoRepositorio()
+empleados = EmpleadoRepositorio()
 clave = hashlib.sha256("clave123".encode()).hexdigest()
 
-depto = Departamento("D-01", "Desarrollo Sostenible")
-empleado = Empleado("E-01", "Sebastián Gaete", "+56911111111",
-                    "sebastian@ecotech.cl", date(2024, 3, 1),
-                    1000000.0, clave)
-proyecto = Proyecto("P-50", "Panel Solar", "Monitoreo de paneles",
-                    date(2026, 3, 1))
+print("=== CREAR ===")
+operaciones = deptos.guardar(Departamento(None, "Operaciones"))
+print(operaciones)
+temporal = deptos.guardar(Departamento(None, "Temporal"))
+print(temporal)
+ana = Empleado("12345678-9", "Ana Rojas", "+56911111111",
+               "ana@ecotech.cl", date(2024, 3, 1), 950000, clave)
+empleados.guardar(ana, departamento_id=operaciones.get_id())
 
-depto.agregar_empleado(empleado)
-proyecto.asignar_empleado(empleado)
-empleado.registrar_horas(proyecto, date(2026, 10, 22), 4.5,
-                         "Diseño de clases")
+print("=== LEER ===")
+print(empleados.obtener("12345678-9"))
+print(deptos.obtener(operaciones.get_id()))
+print("Empleados:", len(empleados.listar()))
+print("Departamentos:", len(deptos.listar()))
 
-print("--- __str__ ---")
-print(empleado)
-print(depto)
-print(proyecto)
-print("Autenticación correcta:", empleado.autenticar("clave123"))
+print("=== PRUEBA DE SEGURIDAD ' OR '1'='1 ===")
+ataque = empleados.listar(nombre_contiene="' OR '1'='1")
+print(f"Resultado ataque (empleados): {len(ataque)} registros")
+ataque = deptos.listar(nombre_contiene="' OR '1'='1")
+print(f"Resultado ataque (departamentos): {len(ataque)} registros")
 
-print("--- Validaciones ---")
+print("=== ACTUALIZAR ===")
+ana.set_salario(1050000)
+print("Filas cambiadas:", empleados.actualizar(ana))
+print("Salario guardado:", empleados.obtener("12345678-9").get_salario())
+operaciones.set_nombre("Operaciones y Soporte")
+print("Filas cambiadas:", deptos.actualizar(operaciones))
+
+print("=== QUÉ PASA CUANDO ALGO FALLA ===")
 try:
-    empleado.set_salario(-5)
+    empleados.guardar(ana)
+except sqlite3.IntegrityError as error:
+    print("RUT duplicado:", error)
+try:
+    deptos.eliminar(operaciones.get_id())
+except sqlite3.IntegrityError as error:
+    print("Borrar departamento con empleados:", error)
+try:
+    ana.set_salario(-5)
 except ValueError as error:
     print("Salario inválido:", error)
-try:
-    empleado.registrar_horas(proyecto, date(2026, 10, 22), 30, "x")
-except ValueError as error:
-    print("Horas inválidas:", error)
-try:
-    Persona("Ana", "+5690000000", "correo-sin-arroba")
-except ValueError as error:
-    print("Email inválido:", error)
+print("RUT inexistente:", empleados.obtener("00000000-0"))
 
-print("--- Clase abstracta ---")
-try:
-    Informe("I-00", "Prueba", date(2026, 10, 22))
-except TypeError as error:
-    print("No se puede instanciar:", error)
-
-print("--- Polimorfismo ---")
-hoy = date(2026, 10, 22)
-informes = [
-    InformeNomina("I-01", hoy, depto),
-    InformeNomina("I-02", hoy, depto),
-    InformeProyecto("I-03", hoy, proyecto),
-    InformeDotacion("I-04", hoy, depto),
-]
-for informe in informes:
-    print(informe)
-    print("  ->", informe.exportar())
+print("=== ELIMINAR ===")
+print("Empleado archivado:", empleados.eliminar("12345678-9"))
+print("Lo busco de nuevo:", empleados.obtener("12345678-9"))
+print("Departamento eliminado:", deptos.eliminar(temporal.get_id()))
+print("Lo busco de nuevo:", deptos.obtener(temporal.get_id()))

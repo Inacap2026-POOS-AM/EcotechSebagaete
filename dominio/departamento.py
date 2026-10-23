@@ -4,8 +4,19 @@ class Departamento:
     def __init__(self, id_departamento, nombre):
         self._id_departamento = id_departamento
         self._nombre = nombre
-        self._gerente = None    # 0..1 -> puede ser None
-        self._empleados = []    # 0..* -> lista
+        self._gerente = None
+        self._empleados = []
+
+    def get_id(self):
+        return self._id_departamento
+
+    def set_id(self, valor):
+        self._id_departamento = valor
+
+    def set_nombre(self, valor):
+        if not valor.strip():
+            raise ValueError("El nombre no puede estar vacío")
+        self._nombre = valor
 
     def asignar_gerente(self, empleado):
         self._gerente = empleado
@@ -15,9 +26,9 @@ class Departamento:
             self._empleados.append(empleado)
             empleado._departamento = self
 
-    def eliminar_empleado(self, id_empleado):
+    def eliminar_empleado(self, rut):
         for empleado in self._empleados:
-            if empleado._id_empleado == id_empleado:
+            if empleado.get_rut() == rut:
                 self._empleados.remove(empleado)
                 empleado._departamento = None
                 break
