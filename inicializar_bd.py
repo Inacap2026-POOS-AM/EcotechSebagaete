@@ -1,12 +1,11 @@
 import os
-
-from infraestructura.conexion import obtener_conexion
+from infraestructura.conexion import obtener_conexion, leer_variable
 
 
 def inicializar():
     conn = obtener_conexion()
     try:
-        with open("db/01_esquema.sql", encoding="utf-8") as archivo:
+        with open(leer_variable("DB_ESQUEMA"), encoding="utf-8") as archivo:
             conn.executescript(archivo.read())
         conn.commit()
     finally:

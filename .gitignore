@@ -1,4 +1,6 @@
 .venv/
 .env
 ecotech.db
+demo.db
+prueba_transaccion.db
 __pycache__/
